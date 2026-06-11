@@ -79,3 +79,33 @@ binary, whose memory layout differs from the released source in places
   per board against the random-policy distribution (see the discussion
   in the project notes — score values are part of the genotype and
   trivially inflatable).
+
+## Calibration results (first pass, seed 0)
+
+Estimator: (1+4)-ES over a 7-feature linear softmax policy, 25
+generations × 4 episodes/candidate, common-random-number serves,
+replace-on-margin; ES fitness = mean log(1+score) + 0.5·log(1+frames)
+(the survival term is what made learning visible — score alone is too
+heavy-tailed at this episode budget). `tools/learn_es.py`, ~2–4 min per
+board with 6 parallel envs.
+
+| Board | Random (mean ± std) | Learned (final 3 gens) | LP_z |
+|---|---|---|---|
+| NEW (empty) | 0 ± 0 | 0 | **0.00** ✓ correctly hopeless |
+| DEMO1 (lane trap) | 0 ± 0 | 0 | **0.00** ✓ correctly degenerate |
+| DEMO2 (Meta-Pin) | 2303 ± 5053 | 22260 | **+3.95** ✓ clear learning |
+| DEMO3 | 2294 ± 9420 | 97 | −0.23 — no learning at this budget |
+
+DEMO2 is the existence proof: learning progress separates a rich
+playable board from degenerate ones by ~4 baseline-stddevs. DEMO3 is the
+honest open question — either it genuinely affords the player less
+control, or the estimator's budget/learner is too weak for it; this is
+the learner-relativity issue inherent to learnability fitness and worth
+keeping as a calibration probe. Earlier passes that used score-only
+fitness with 2 episodes/candidate showed *no* learning even on DEMO2 —
+estimator design matters more than raw budget.
+
+Engineering notes from the calibration runs: the bridge idle watchdog
+must be long (600 s) because a thread-pool's LIFO env reuse can starve
+an instance for minutes; dead boards short-circuit after 3 degenerate
+resets so the empty board costs 3 s, not 2 minutes.

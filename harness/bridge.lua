@@ -139,11 +139,11 @@ emu.register_frame_done(function()
     -- episodes deterministic and loses no events. Give up after 60s
     -- (Python died) so the process can't hang forever.
     local s, cmd
-    local deadline = os.time() + 60
+    local deadline = os.time() + 600
     repeat
       s, cmd = poll_cmd()
       if not s and os.time() > deadline then
-        emu.print_info("[bridge] no commands for 60s, exiting")
+        emu.print_info("[bridge] no commands for 600s, exiting")
         mach:exit()
         return
       end

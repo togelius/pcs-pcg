@@ -98,6 +98,8 @@ class PCSPinballEnv:
         self._seq = 0
         self._score = 0
         self._proc = None
+        self._dead_resets = 0
+        self.board_dead = False
 
         self.disk, self.state = ensure_state(pb_path, base_disk)
         self.ipc = tempfile.mkdtemp(prefix="pcs_ipc_", dir="/dev/shm")
@@ -105,8 +107,12 @@ class PCSPinballEnv:
                    PCS_IPC_DIR=self.ipc, PCS_STATE=self.state,
                    PCS_SKIP=str(skip), PCS_ACT_Y=str(act_y),
                    PCS_SKIP_CAP=str(skip_cap))
+        # per-instance MAME dirs so parallel instances don't race on cfg
+        extra = ["-cfg_directory", os.path.join(self.ipc, "cfg"),
+                 "-nvram_directory", os.path.join(self.ipc, "nvram")]
         self._proc = subprocess.Popen(
-            _mame_cmd(self.disk, os.path.join(ROOT, "harness", "bridge.lua")),
+            _mame_cmd(self.disk, os.path.join(ROOT, "harness", "bridge.lua"),
+                      extra),
             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self._wait_for(os.path.join(self.ipc, "ready"), timeout=120)
 
@@ -146,15 +152,34 @@ class PCSPinballEnv:
     # ---- gym-ish API ------------------------------------------------------
 
     def reset(self, plunger: int | None = None) -> np.ndarray:
+        if self.board_dead:
+            self._score = 0
+            self._steps = 0
+            self._dead = True
+            return np.zeros(4, dtype=np.float32)
         if plunger is None:
             plunger = int(self.rng.integers(140, 256))
         parts = self._rpc(f"reset {plunger}").split()
         if parts[0] != "ok":
-            raise RuntimeError(f"reset failed: {' '.join(parts)}")
+            # board never reaches a playable state (no ball, no game
+            # start): treat as a dead episode, not an infrastructure error
+            self._score = 0
+            self._steps = 0
+            self._dead = True
+            self._dead_resets += 1
+            if self._dead_resets >= 3:
+                self.board_dead = True
+            return np.zeros(4, dtype=np.float32)
         x, y, dx, dy, score, in_play = map(int, parts[1:7])
         self._score = score
         self._steps = 0
         self._dead = in_play == 0   # launch-degenerate board
+        if self._dead:
+            self._dead_resets += 1
+            if self._dead_resets >= 3:
+                self.board_dead = True
+        else:
+            self._dead_resets = 0
         return np.array([x, y, dx, dy], dtype=np.float32)
 
     def step(self, action: int):
