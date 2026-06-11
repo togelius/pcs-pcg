@@ -71,9 +71,13 @@ scripts/run_mame.sh -flop1 disks/pcs.dsk \
 | `tools/dos33.py` | Read/write DOS 3.3 `.dsk` images — catalog, extract, and inject `.PB` files. Round-trip verified; injected boards boot in PCS. |
 | `tools/pb.py` | Parse `.PB` board files into polygons (validated against the demo boards). |
 | `harness/pcs.lua` | MAME Lua harness — reads ball/score state, taps `DSCORE` for cumulative score, logs CSV, screenshots, exits after N frames. |
+| `harness/play.lua` | Play driver — verified input primitives (cursor poke, inverted-polarity buttons, flippers/plunger) plus a configurable action timeline and fitness logging. |
+| `tools/evaluate.py` | Orchestrator — inject a `.PB`, run MAME headless with the harness, parse the CSV, return a fitness summary (score, ball lifetime, activity, coverage). |
 
-See `docs/PB_FORMAT.md` (board file format) and `docs/MEMORY_MAP.md`
-(runtime fitness signals), both derived from Budge's source.
+See `docs/PB_FORMAT.md` (board file format), `docs/MEMORY_MAP.md`
+(runtime fitness signals), and `docs/AUTOMATION.md` (how PCS is driven
+headlessly — verified primitives and the remaining integration step),
+all derived from Budge's source.
 
 Quick look at a board:
 ```sh
