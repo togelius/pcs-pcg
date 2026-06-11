@@ -1,0 +1,10 @@
+# Emulator binaries/assets assembled by scripts/setup.sh
+roms/
+work/
+third_party/
+
+# Disk images (copyrighted software; fetched/provided per-machine)
+disks/*.dsk
+disks/*.woz
+disks/*.po
+disks/*.nib
