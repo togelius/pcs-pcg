@@ -8,3 +8,4 @@ disks/*.dsk
 disks/*.woz
 disks/*.po
 disks/*.nib
+disks/*.txt

@@ -48,6 +48,10 @@ network policy blocks. Two options:
 Either way the script verifies it against the canonical fingerprint
 (143360 bytes, sha1 `9a809dd030da376f17857b4cd74fba4cad68f01c`).
 
+The same archive.org item also contains a **work disk**
+(`disks/pcs_work.dsk`) — PCS saves boards to a separate disk, so this
+is where generated/evolved boards will live during evaluation.
+
 ## Running
 
 ```sh
