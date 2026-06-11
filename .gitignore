@@ -3,9 +3,5 @@ roms/
 work/
 third_party/
 
-# Disk images (copyrighted software; fetched/provided per-machine)
-disks/*.dsk
-disks/*.woz
-disks/*.po
-disks/*.nib
-disks/*.txt
+# Fetched automatically by scripts/setup.sh
+disks/dos33_test.dsk
