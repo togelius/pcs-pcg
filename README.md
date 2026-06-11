@@ -64,6 +64,22 @@ scripts/run_mame.sh -flop1 disks/pcs.dsk \
     -video none -sound none -nothrottle -autoboot_script eval.lua
 ```
 
+## Tools
+
+| Path | What it does |
+|---|---|
+| `tools/dos33.py` | Read/write DOS 3.3 `.dsk` images — catalog, extract, and inject `.PB` files. Round-trip verified; injected boards boot in PCS. |
+| `tools/pb.py` | Parse `.PB` board files into polygons (validated against the demo boards). |
+| `harness/pcs.lua` | MAME Lua harness — reads ball/score state, taps `DSCORE` for cumulative score, logs CSV, screenshots, exits after N frames. |
+
+See `docs/PB_FORMAT.md` (board file format) and `docs/MEMORY_MAP.md`
+(runtime fitness signals), both derived from Budge's source.
+
+Quick look at a board:
+```sh
+python3 tools/pb.py disks/pcs.dsk DEMO1.PB
+```
+
 ## Planned pipeline
 
 1. **Genotype → board file.** Decode the saved-board format from the
