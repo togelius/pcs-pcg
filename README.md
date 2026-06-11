@@ -72,6 +72,9 @@ scripts/run_mame.sh -flop1 disks/pcs.dsk \
 | `tools/pb.py` | Parse `.PB` board files into polygons (validated against the demo boards). |
 | `harness/autoplay.lua` | **The play driver.** Boots PCS, drives the real UI (DISK → LOAD → types the board name → PLAY GAME), then plays with paced random flippers and plunger cycles, logging ball state and the live score. |
 | `harness/pcs.lua` | Minimal harness — memory reads, CSV logging, screenshots (kept for ad-hoc probing). |
+| `tools/pcs_env.py` | **Gym-style RL environment** — save-state fast reset (0.2–1.6 s/episode), deterministic, single-ball episodes with geometric drain detection and launch-degeneracy pre-filtering. See `docs/RL_ENV.md`. |
+| `harness/make_state.lua` | One-time per-board save-state creation at the player-select screen. |
+| `harness/bridge.lua` | In-MAME side of the env: file-IPC step/reset server with zero idle frames. |
 | `tools/evaluate.py` | Orchestrator — inject a `.PB` as `EVOLVED.PB`, run MAME headless with `autoplay.lua`, parse the CSV, return a fitness summary (score, ball lifetime, activity, coverage). Optionally records gameplay video. |
 
 See `docs/PB_FORMAT.md` (board file format), `docs/MEMORY_MAP.md`
