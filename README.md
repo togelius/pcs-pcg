@@ -70,31 +70,42 @@ scripts/run_mame.sh -flop1 disks/pcs.dsk \
 |---|---|
 | `tools/dos33.py` | Read/write DOS 3.3 `.dsk` images — catalog, extract, and inject `.PB` files. Round-trip verified; injected boards boot in PCS. |
 | `tools/pb.py` | Parse `.PB` board files into polygons (validated against the demo boards). |
-| `harness/pcs.lua` | MAME Lua harness — reads ball/score state, taps `DSCORE` for cumulative score, logs CSV, screenshots, exits after N frames. |
-| `harness/play.lua` | Play driver — verified input primitives (cursor poke, inverted-polarity buttons, flippers/plunger) plus a configurable action timeline and fitness logging. |
-| `tools/evaluate.py` | Orchestrator — inject a `.PB`, run MAME headless with the harness, parse the CSV, return a fitness summary (score, ball lifetime, activity, coverage). |
+| `harness/autoplay.lua` | **The play driver.** Boots PCS, drives the real UI (DISK → LOAD → types the board name → PLAY GAME), then plays with paced random flippers and plunger cycles, logging ball state and the live score. |
+| `harness/pcs.lua` | Minimal harness — memory reads, CSV logging, screenshots (kept for ad-hoc probing). |
+| `tools/evaluate.py` | Orchestrator — inject a `.PB` as `EVOLVED.PB`, run MAME headless with `autoplay.lua`, parse the CSV, return a fitness summary (score, ball lifetime, activity, coverage). Optionally records gameplay video. |
 
 See `docs/PB_FORMAT.md` (board file format), `docs/MEMORY_MAP.md`
-(runtime fitness signals), and `docs/AUTOMATION.md` (how PCS is driven
-headlessly — verified primitives and the remaining integration step),
-all derived from Budge's source.
+(fitness signals), and `docs/AUTOMATION.md` (the working headless drive
+pipeline and the traps found along the way).
+
+Evaluate a board (and record video):
+```sh
+python3 tools/dos33.py extract disks/pcs.dsk DEMO2.PB /tmp/board.pb
+python3 tools/evaluate.py /tmp/board.pb --frames 6000 --avi /tmp/run.avi
+# -> score 40278, ball_lifetime 6001, activity 22.87, coverage 231
+```
 
 Quick look at a board:
 ```sh
 python3 tools/pb.py disks/pcs.dsk DEMO1.PB
 ```
 
-## Planned pipeline
+## Pipeline (working)
 
-1. **Genotype → board file.** Decode the saved-board format from the
-   PCS source (`third_party/PCS_AppleII`, see `EDIT.S` / `DISK.S`) and
-   emit board files directly from Python.
-2. **Inject into a disk image** with a CLI tool (a2kit or
-   AppleCommander).
-3. **Evaluate in MAME**: restore a save state taken at the
-   board-loaded point, run the ball with scripted flipper input, read
-   fitness signals (score, ball lifetime, target hits) from emulated
-   RAM via Lua memory taps.
+1. **Genotype → board file**: boards are lists of filled polygons
+   (`tools/pb.py`, `docs/PB_FORMAT.md`) — emit/mutate `.PB` payloads in
+   Python.
+2. **Inject**: `tools/dos33.py` writes the board onto a copy of the
+   game disk as `EVOLVED.PB`.
+3. **Evaluate**: `tools/evaluate.py` boots PCS headless, drives the
+   real LOAD + PLAY GAME UI (`harness/autoplay.lua`), plays with
+   seeded-random flippers, and reads score/ball telemetry from RAM →
+   fitness `{score, ball_lifetime, activity, coverage}`.
+
+Still open for the evolution loop proper: a board *generator/mutator*
+(the parts records' trailing bytes — behavior/wiring — still need
+decoding before adding new parts; vertex/position mutation of existing
+records is already safe), and multi-seed evaluation for noise reduction.
 
 ## Layout
 

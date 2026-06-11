@@ -42,14 +42,16 @@ per-frame object scan), and the board object count at `PBDATA = $401C`.
 
 The visible score is **not** a single integer. `DSCORE` (`$CB`) is a
 0–255 delta that `DOSCORE`/`TALLY` (RUN2.S) flush into a per-player
-array of decimal digits (one digit per byte, pointed to by
-`SCTBLO`/`SCTBHI`), then reset to 0. Because the reset happens every
-frame, polling `DSCORE` can miss points.
+array of decimal digits (one digit per byte), then reset to 0.
 
-The harness therefore installs a **write tap** on `$CB`
-(`install_score_tap`) and sums the last nonzero value seen before each
-return to 0. This reconstructs the exact cumulative score without
-needing the absolute address of the multi-digit buffer.
+**Player 1's digit array is at `$8952`** — 8 bytes, most significant
+digit first (located empirically by diffing RAM dumps during a scoring
+game; the shipped binary's labels differ from the GitHub source). The
+on-screen score appends a fixed trailing zero, i.e. displayed value =
+array value × 10. The array resets when the 5-ball game ends and the
+attract loop restarts, so `harness/autoplay.lua` tracks the maximum
+value seen. This direct read replaced an earlier `DSCORE` write-tap
+approach, which proved unreliable.
 
 ## Suggested fitness terms
 

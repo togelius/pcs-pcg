@@ -5,3 +5,4 @@ third_party/
 
 # Fetched automatically by scripts/setup.sh
 disks/dos33_test.dsk
+__pycache__/

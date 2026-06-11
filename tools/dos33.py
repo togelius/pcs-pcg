@@ -193,18 +193,30 @@ class Dos33Disk:
 
     def write_binary(self, name: str, load_addr: int, payload: bytes) -> None:
         """Add (or replace) a DOS 3.3 B file."""
+        raw = struct.pack('<HH', load_addr, len(payload)) + payload
+        self.write_raw(name, 0x04, raw)
+
+    def write_applesoft(self, name: str, program: bytes) -> None:
+        """Add (or replace) a DOS 3.3 A (Applesoft) file.
+
+        `program` is the tokenized program image as stored from $0801.
+        """
+        raw = struct.pack('<H', len(program)) + program
+        self.write_raw(name, 0x02, raw)
+
+    def write_raw(self, name: str, file_type: int, raw: bytes) -> None:
+        """Add (or replace) a file with the given DOS type byte."""
         try:
             self.delete_file(name)
         except FileNotFoundError:
             pass
 
-        raw = struct.pack('<HH', load_addr, len(payload)) + payload
         sectors = [raw[i:i + SECTOR_SIZE] for i in range(0, len(raw), SECTOR_SIZE)]
         if sectors and len(sectors[-1]) < SECTOR_SIZE:
             sectors[-1] = sectors[-1] + b'\0' * (SECTOR_SIZE - len(sectors[-1]))
 
         if len(sectors) > 122:
-            raise IOError("file too large for a single t/s list (not needed for .PB)")
+            raise IOError("file too large for a single t/s list")
 
         data_locs = []
         for payload_sec in sectors:
@@ -228,7 +240,7 @@ class Dos33Disk:
                 if sec[off] in (0x00, 0xFF):
                     sec[off] = ts_t
                     sec[off + 1] = ts_s
-                    sec[off + 2] = 0x04  # B file, unlocked
+                    sec[off + 2] = file_type  # unlocked
                     padded = name.ljust(30)[:30]
                     sec[off + 3:off + 33] = bytes((ord(c) | 0x80) for c in padded)
                     count = len(sectors) + 1
