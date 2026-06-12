@@ -45,8 +45,8 @@ def main() -> None:
         with open(path) as f:
             r = json.load(f)
         rm = robust_metrics(r)
-        rows.append({"board": m.group(1), "kind": m.group(2),
-                     "seed": int(m.group(3)), **r, **rm})
+        rows.append({**r, **rm, "board": m.group(1), "kind": m.group(2),
+                     "seed": int(m.group(3))})
         print(f"{name:18s} lp_z={r['lp_z']:+6.2f}  pct={rm['pct']:5.1f}  "
               f"z_med={rm['z_med']:+8.2f}  final3={r['final3']:9.0f}  "
               f"rnd_med={rm['median']:7.0f}")
