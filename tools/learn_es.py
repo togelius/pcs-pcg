@@ -53,16 +53,21 @@ def act(weights: np.ndarray, obs: np.ndarray) -> int:
 
 
 def run_episode(env: PCSPinballEnv, weights: np.ndarray | None,
-                plunger: int, rng: np.random.Generator) -> tuple[int, int]:
+                plunger: int, rng: np.random.Generator) -> tuple[int, int, int, int]:
     """One ball. weights=None -> uniform random policy.
 
     Policies are softmax-stochastic (temperature 1) so that the fitness
     landscape is smooth; the rng seed is part of the job, so common
     random numbers across ES candidates still apply.
-    Returns (score, frames_survived).
+
+    Returns (score, frames_survived, cells_visited, scoring_spots):
+    cells = distinct 16x16-px playfield cells the ball visited
+    (exploration); scoring_spots = distinct cells in which score
+    increments happened (proxy for "different items touched").
     """
     obs = env.reset(plunger=plunger)
     done, info, frames = False, {"score": 0}, 0
+    cells, spots = set(), set()
     while not done:
         if weights is None:
             a = int(rng.integers(0, N_ACTIONS))
@@ -71,9 +76,13 @@ def run_episode(env: PCSPinballEnv, weights: np.ndarray | None,
             z = z - z.max()
             p = np.exp(z); p /= p.sum()
             a = int(rng.choice(N_ACTIONS, p=p))
-        obs, _, done, info = env.step(a)
+        obs, r, done, info = env.step(a)
         frames += info.get("frames", 0)
-    return info["score"], frames
+        cell = (int(obs[0]) // 16, int(obs[1]) // 16)
+        cells.add(cell)
+        if r > 0:
+            spots.add(cell)
+    return info["score"], frames, len(cells), len(spots)
 
 
 class Evaluator:
@@ -109,15 +118,23 @@ class Evaluator:
 
 
 SURVIVAL_WEIGHT = 0.5
+EXPLORE_WEIGHT = 0.2     # distinct playfield cells visited
+SPOTS_WEIGHT = 0.2       # distinct cells where scoring happened
 
-def fitness(results: list[tuple[int, int]]) -> float:
-    """Mean of log score plus weighted log survival time.
+def fitness(results: list[tuple[int, int, int, int]]) -> float:
+    """Mean of log score plus minor shaped terms.
 
     Survival (frames) has far lower variance than score and ball-keeping
-    is the core learnable skill; score remains the primary term.
+    is the core learnable skill; exploration (cells visited) and variety
+    (distinct scoring spots ~ different items touched) are deliberately
+    minor: with these weights their combined ceiling is ~2 fitness units
+    against ~10 for a good score.
     """
-    return float(np.mean([np.log1p(s) + SURVIVAL_WEIGHT * np.log1p(f)
-                          for s, f in results]))
+    return float(np.mean([np.log1p(s)
+                          + SURVIVAL_WEIGHT * np.log1p(f)
+                          + EXPLORE_WEIGHT * np.log1p(c)
+                          + SPOTS_WEIGHT * np.log1p(k)
+                          for s, f, c, k in results]))
 
 
 def calibrate_board(pb_path: str, *, gens: int, children: int = 4,
@@ -132,7 +149,7 @@ def calibrate_board(pb_path: str, *, gens: int, children: int = 4,
         base_jobs = [(None, int(rng.integers(140, 256)), int(rng.integers(2**31)))
                      for _ in range(baseline_eps)]
         base_results = ev.scores(base_jobs)
-        base_scores = [s for s, _ in base_results]
+        base_scores = [r[0] for r in base_results]
 
         # (1+4)-ES on the linear policy
         parent = rng.normal(0, 0.1, size=(N_ACTIONS, N_FEATURES))
@@ -162,7 +179,7 @@ def calibrate_board(pb_path: str, *, gens: int, children: int = 4,
             else:
                 chosen = 0
             curve_fit.append(fits[chosen])
-            curve_raw.append(float(np.mean([s for s, _ in by_cand[chosen]])))
+            curve_raw.append(float(np.mean([r[0] for r in by_cand[chosen]])))
 
         rnd_mean = float(np.mean(base_scores))
         rnd_std = float(np.std(base_scores))
@@ -186,6 +203,8 @@ def main() -> None:
     ap.add_argument("--boards", nargs="+", required=True)
     ap.add_argument("--gens", type=int, default=20)
     ap.add_argument("--episodes", type=int, default=4)
+    ap.add_argument("--children", type=int, default=4)
+    ap.add_argument("--sigma", type=float, default=0.3)
     ap.add_argument("--envs", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=None)
@@ -195,6 +214,7 @@ def main() -> None:
     for b in args.boards:
         print(f"=== {b} ===", flush=True)
         r = calibrate_board(b, gens=args.gens, episodes=args.episodes,
+                            children=args.children, sigma=args.sigma,
                             n_envs=args.envs, seed=args.seed)
         results.append(r)
         print(f"  random: {r['random_mean']:.0f} ± {r['random_std']:.0f}   "
