@@ -80,6 +80,45 @@ binary, whose memory layout differs from the released source in places
   in the project notes — score values are part of the genotype and
   trivially inflatable).
 
+## Replication study (20 runs, multi-seed + long budgets)
+
+Estimator fitness now adds two deliberately minor exploration terms next
+to score and survival: distinct 16px playfield cells visited and
+distinct cells where scoring occurred ("different items touched"),
+weights 0.2 each. Replication matrix: 25 gens x 4 episodes at seeds 0-4
+(playable boards) / 0-2 (degenerate boards), plus 75 gens x 6 episodes
+("long", seeds 10-11) on the playable boards. `tools/replicate.py`;
+robust analysis in `tools/analyze_replication.py`; figures in
+`docs/figures/` via `tools/plot_replication.py`.
+
+**Headline metric — percentile of learned performance within the
+random-episode score distribution** (LP_z's mean/std normalisation is
+unusable here: pinball score tails are so heavy that one unattended
+~500k jackpot random episode crushes a genuinely learning run to
+LP_z=0, and near-zero baselines explode it to +251):
+
+| Board | Budget | n | Percentile (mean ± std) |
+|---|---|---|---|
+| NEW (empty) | std | 3 | 0.0 ± 0.0 |
+| DEMO1 (lane trap) | std | 3 | 0.0 ± 0.0 |
+| DEMO2 (Meta-Pin) | std | 5 | **92.7 ± 5.7** |
+| DEMO2 | long | 2 | **96.7 ± 0.0** |
+| DEMO3 | std | 5 | **97.3 ± 2.5** |
+| DEMO3 | long | 2 | **98.3 ± 1.7** |
+
+Conclusions: (1) the first-pass result was not luck — every seed on
+both playable boards learns to >=83rd percentile of random play, and
+all degenerate runs pin at zero; (2) more budget tightens the estimate
+(long runs: 96.7-98.3 with std <=1.7); (3) DEMO3, which looked
+unlearnable in the score-only first pass, learns on every seed once the
+exploration terms give the ES gradient — estimator shaping mattered
+more than budget; (4) the learning curves (figures) rise 2-3 orders of
+magnitude above the random IQR and stay there.
+
+![standard-budget learning curves](figures/fig_curves_std.png)
+![long-budget learning curves](figures/fig_curves_long.png)
+![percentile summary](figures/fig_percentiles.png)
+
 ## Calibration results (first pass, seed 0)
 
 Estimator: (1+4)-ES over a 7-feature linear softmax policy, 25
