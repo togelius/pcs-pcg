@@ -57,3 +57,26 @@ trap in the calibration.
 seeding) and `learnability` (the calibrated percentile-of-random
 estimator at reduced budget, ~3–4 min/board). Every evaluated board and
 its metrics go to the run directory as `.pb` + JSONL.
+
+## Validation (in-emulator)
+
+All confirmed against real MAME runs:
+
+- **Round-trip is byte-exact.** Parsing then recompiling each of the six
+  shipped boards reproduces the logic/wset/size-table/records region
+  byte-for-byte (the tail differs by design — we emit a blank-screen
+  RLE).
+- **The blank tail renders and plays.** A recompiled DEMO2 (blank tail)
+  loads, draws the full board, and plays — one random episode scored
+  257k. Collisions are rebuilt from the object records by DRAWDISPLAY,
+  so the screen bitmap is purely cosmetic and a blank background is
+  fine. Screenshots of a generated board and a DEMO2 mutant show the
+  chassis plus placed parts rendered correctly.
+- **Generator and mutator produce playable boards.** 87 part templates
+  harvested from the five demo boards. Across 5 generated boards and 5
+  DEMO2 mutants, **60/60 episodes launched** — the chassis guarantees a
+  serveable ball. Generated (random-layout) boards score low under
+  random play (median 0–126); DEMO2 mutants retain the rich chassis's
+  scoring potential (max 12k–244k). A generated board that launches but
+  never scores (GEN1) is a legitimate low-fitness genome, exactly what
+  the learnability fitness is meant to cull.
