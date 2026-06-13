@@ -73,9 +73,10 @@ end
 
 -- state machine: mirror the bridge's reset, then self-drive
 local phase, t, ball = "boot", 0, 0
+local boot_frames = 0
 local start_x, start_y, in_play = nil, nil, false
 local last_x, last_y, stable, t_plunge, game_started, t_started = -1, -1, 0, 0, false, 0
-local skip_ctr, cur_action = 0, 0
+local skip_ctr, cur_action, play_t = 0, 0, 0
 
 local function begin_reset()
   mach:load(STATE)
@@ -89,7 +90,10 @@ emu.register_frame_done(function()
   jx:set_value(128); jy:set_value(128); b1:set_value(REL); b2:set_value(REL)
 
   if phase == "boot" then
-    begin_reset()
+    -- let MAME fully boot the disk before restoring a save state;
+    -- loading at frame 1 yields a corrupt restore
+    boot_frames = boot_frames + 1
+    if boot_frames >= 240 then begin_reset() end
 
   elseif phase == "reset" then
     t = t + 1
@@ -111,14 +115,17 @@ emu.register_frame_done(function()
       jy:set_value(PLUNGER); b1:set_value(PRESS)
       if start_x and math.abs(x - start_x) > 12 then in_play = true end
     else
-      phase, skip_ctr, cur_action = "play", 0, 0
+      phase, skip_ctr, cur_action, play_t = "play", 0, 0, 0
     end
 
   elseif phase == "play" then
+    play_t = play_t + 1
     local x, y, dx, dy = read_ball()
     if start_x and math.abs(x - start_x) > 12 then in_play = true end
-    -- drain check
-    if in_play and math.abs(x - start_x) <= 2 and y >= start_y - 10 then
+    -- drain check (only after the ball has actually entered play and a
+    -- minimum dwell, so a settling frame can't end the ball instantly)
+    if in_play and play_t > 20
+       and math.abs(x - start_x) <= 2 and y >= start_y - 10 then
       ball = ball + 1
       if ball >= NBALLS then mach:exit() else begin_reset() end
       return

@@ -30,9 +30,10 @@ ACTION_COLORS = ["#dddddd", "#3366cc", "#cc3333", "#9933cc"]
 
 
 def train(pb_path: str, *, gens: int, episodes: int, children: int = 6,
-          sigma: float = 0.3, n_envs: int = 4, seed: int = 0):
+          sigma: float = 0.3, n_envs: int = 4, seed: int = 0,
+          max_episode_steps: int = 300):
     rng = np.random.default_rng(seed)
-    ev = Evaluator(pb_path, n_envs, max_episode_steps=300)
+    ev = Evaluator(pb_path, n_envs, max_episode_steps=max_episode_steps)
     try:
         parent = rng.normal(0, 0.1, size=(N_ACTIONS, N_FEATURES))
         best_w, best_fit, curve = parent, -1e9, []
@@ -107,13 +108,15 @@ def main() -> None:
     ap.add_argument("board")
     ap.add_argument("--gens", type=int, default=25)
     ap.add_argument("--episodes", type=int, default=4)
+    ap.add_argument("--steps", type=int, default=300,
+                    help="max episode steps (lower = faster on long-survival boards)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     w, fit, curve = train(args.board, gens=args.gens, episodes=args.episodes,
-                          seed=args.seed)
+                          seed=args.seed, max_episode_steps=args.steps)
     np.savetxt(args.out + ".txt", w.reshape(1, -1), fmt="%.5f")
     hist = action_map(w, args.out + "_actionmap.png")
     print(f"{os.path.basename(args.board)}: best_fit={fit:.2f} "

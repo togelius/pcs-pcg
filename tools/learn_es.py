@@ -89,6 +89,10 @@ class Evaluator:
     """Thread pool of envs evaluating (weights, plunger) episode lists."""
 
     def __init__(self, pb_path: str, n_envs: int, max_episode_steps: int):
+        # Create the save state once up front; otherwise N envs racing to
+        # build it each run a ~70s make_state and can blow timeouts.
+        from pcs_env import ensure_state
+        ensure_state(pb_path)
         self.envs = [PCSPinballEnv(pb_path, max_episode_steps=max_episode_steps)
                      for _ in range(n_envs)]
         self.pool = ThreadPoolExecutor(max_workers=n_envs)

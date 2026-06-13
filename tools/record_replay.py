@@ -26,7 +26,8 @@ def record(pb_path: str, out: str, policy: str | None, balls: int,
            plunger: int, seconds: int) -> str:
     disk, state = ensure_state(pb_path)
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
-    avi = out + ".avi"
+    # absolute path: MAME prepends its snapshot dir to relative -aviwrite
+    avi = os.path.abspath(out + ".avi")
     env = dict(os.environ, PCS_STATE=state, PCS_BALLS=str(balls),
                PCS_PLUNGER=str(plunger))
     if policy:
