@@ -56,16 +56,36 @@ for a downward-moving ball.
   (higher on the right), so the policy anticipates which flipper the
   ball is heading for. This is genuine positional control.
 
-- **g002_o0 / g004_o1 (the trivial hotspot boards).** [filled from the
-  reduced-budget runs] Trained performance barely exceeds random,
-  because the points come from the passive hotspot rather than from
-  flipper skill — the action map carries little structure. This is the
-  trivial-board signature.
+- **g002_o0 / g004_o1 (the trivial hotspot boards).** A direct probe —
+  median score over 8 balls under three controllers — shows the points
+  are **policy-independent**:
 
-The contrast — a 14x trainable gap on the ancestor versus ~no gap on
-the evolved champion — is the learnability story in one lineage, and
-the argument for swapping the outer fitness from `cheap` to
-`learnability` for the real experiment.
+  | board | flippers idle | random | trained |
+  |---|---|---|---|
+  | g000_i0 (ancestor) | 120 | 94 | (needs longer episodes — see below) |
+  | g002_o0 (hotspot) | 17,225 | 17,120 | 17,075 |
+  | g004_o1 (champion) | 17,365 | 17,250 | 17,220 |
+
+  (50-step episodes; absolute numbers scale with episode length, the
+  ratios are the point.) On the hotspot boards idle ≈ random ≈ trained
+  to within 1%: the ball falls into the bumper cluster and scores with
+  the flippers switched **off**. Skill is irrelevant. Training a policy
+  there is also prohibitively slow precisely because the ball survives
+  passively in the hotspot for the whole episode — the cost *is* the
+  triviality.
+
+The contrast is the learnability story in one lineage: on the ancestor a
+trained policy reaches ~1817 vs ~130 random at the full training budget
+(**~14x**, real skill), while on the evolved champion the controller
+makes no difference at all. That is exactly the failure mode the
+learnability fitness is built to avoid, and the argument for swapping
+the outer fitness from `cheap` to `learnability` for the real
+experiment.
+
+(Aside: at the very short 50-step budget even the ancestor scores little
+under any policy — its scoring needs longer play to express, so
+learnability there is budget-dependent. The hotspot triviality, by
+contrast, holds at every budget.)
 
 Artifacts: `tools/train_policy.py` (train + action map),
 `tools/analyze_policies.py` (combined figure + weight tables),
