@@ -75,6 +75,9 @@ scripts/run_mame.sh -flop1 disks/pcs.dsk \
 | `tools/pcs_env.py` | **Gym-style RL environment** — save-state fast reset (0.2–1.6 s/episode), deterministic, single-ball episodes with geometric drain detection and launch-degeneracy pre-filtering. See `docs/RL_ENV.md`. |
 | `harness/make_state.lua` | One-time per-board save-state creation at the player-select screen. |
 | `harness/bridge.lua` | In-MAME side of the env: file-IPC step/reset server with zero idle frames. |
+| `tools/board.py` | **Board genotype** — parse/compile/generate/mutate boards as chassis + harvested part templates (`docs/BOARD_GENOTYPE.md`). |
+| `tools/evolve.py` | Outer evolution loop — (mu+lambda) over board genomes with cheap or learnability fitness. |
+| `tools/learn_es.py` | Learnability estimator — (1+4)-ES over a tiny policy, percentile-of-random metric (`docs/RL_ENV.md`). |
 | `tools/evaluate.py` | Orchestrator — inject a `.PB` as `EVOLVED.PB`, run MAME headless with `autoplay.lua`, parse the CSV, return a fitness summary (score, ball lifetime, activity, coverage). Optionally records gameplay video. |
 
 See `docs/PB_FORMAT.md` (board file format), `docs/MEMORY_MAP.md`
