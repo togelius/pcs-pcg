@@ -61,25 +61,36 @@ def eval_cheap(pb_path: str, seed: int, episodes: int = 20,
 
 
 def eval_learnability(pb_path: str, seed: int) -> dict:
-    """Percentile-of-random learnability (reduced budget for the loop).
+    """Magnitude-gated percentile-of-random learnability.
 
-    A board scores high only if a trained policy reliably beats random
-    play: trivial boards (random already maxes them) land near the 50th
-    percentile, genuinely learnable boards near the top, dead/unplayable
-    boards at 0. max_episode_steps capped at 150 to bound the cost of
-    long-survival hotspot boards (the signal emerges well within that).
+    Fitness = percentile(learned within random) x magnitude_ramp, where
+    the ramp scales 0->1 with how much the learned policy beats the
+    random MEDIAN. The percentile alone is fooled by tight-variance
+    trivial boards (e.g. learned 1084.6 vs random 1083.0 -> pct 95 with
+    no real learning, because every random episode scores ~1083); the
+    ramp demands a real performance gap, so:
+      - genuinely learnable (random low, learned high) -> high fitness
+      - trivial (learned ~ random, any variance) -> ~0
+      - random-beats-learned -> low percentile -> ~0
+      - dead/unplayable -> 0
+    max_episode_steps capped at 120 to bound long-survival board cost.
     """
     r = calibrate_board(pb_path, gens=12, episodes=3, n_envs=4,
-                        baseline_eps=20, max_episode_steps=150, seed=seed)
+                        baseline_eps=15, max_episode_steps=120, seed=seed)
     rnd = np.array(r["random_scores"], float)
-    pct = float(100.0 * np.mean(rnd < r["final3"])) if len(rnd) else 0.0
-    # small tiebreakers: random play should not already be great
-    # (anti-trivial), and the board should be playable at all
-    playable = 1.0 if r["random_mean"] > 0 or r["final3"] > 0 else 0.0
-    fit = pct + 0.001 * np.log1p(r["final3"])
-    return {"fitness": float(fit * playable), "pct": pct,
-            "final3": r["final3"], "random_mean": r["random_mean"],
-            "random_med": float(np.median(rnd)) if len(rnd) else 0.0,
+    final3 = r["final3"]
+    rnd_med = float(np.median(rnd)) if len(rnd) else 0.0
+    pct = float(100.0 * np.mean(rnd < final3)) if len(rnd) else 0.0
+    gain = final3 - rnd_med
+    # ramp reaches 1.0 once the learned policy beats the random median by
+    # max(150 pts, the median itself) -- absolute floor stops tiny-score
+    # boards from qualifying on a tiny relative gain.
+    ramp = float(np.clip(gain / max(150.0, rnd_med), 0.0, 1.0))
+    playable = 1.0 if (r["random_mean"] > 0 or final3 > 0) else 0.0
+    fitness = pct * ramp * playable
+    return {"fitness": float(fitness), "pct": pct, "ramp": round(ramp, 3),
+            "gain": float(gain), "final3": final3,
+            "random_mean": r["random_mean"], "random_med": rnd_med,
             "curve_raw": r["curve_raw"]}
 
 
