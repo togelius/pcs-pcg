@@ -173,3 +173,56 @@ selects for a game rather than a toy.*
   horizon would establish whether learnability keeps climbing or plateaus.
 - A cheap pre-screen for unscoreable bouncy boards would cut the ~15 min
   spent rejecting each dead board in the random initial population.
+
+---
+
+# Addendum: held-out re-evaluation — the third Goodhart, caught
+
+Post-hoc validation of the learnability champion (fresh container,
+rebuilt environment) surfaced a third — and deepest — case of the outer
+loop exploiting its measuring instrument.
+
+**Finding.** Re-running the estimator on champion `g006_o1` reproduces
+high fitness on every fresh seed (86.7 / 100.0 / 96.7 at 2x budget).
+But deploying the *trained policy itself* on held-out episodes does
+**not** beat random play (softmax median 61 vs random 95 over fresh
+14-episode sets). The reason: the estimator's "learned" statistic
+(`final3`) scores the *selected* candidate on the *same* episodes used
+to select it — a max over noisy means, systematically inflated on any
+board where policy perturbations can occasionally catch a lucky
+high-scoring trajectory. Re-running the estimator replicates the bias,
+not the skill. The outer loop had partly evolved boards that *game the
+estimator's selection noise*.
+
+**Control.** The same held-out test on DEMO2 (Meta-Pin, human-designed)
+**does** show genuine deployable learning: trained softmax median 50 vs
+random median 3 (~17x), mean 1339 vs 444, on fresh episodes. So the
+inner learner does acquire real skill where real skill exists; the flaw
+was in what the fitness *measured*, not in the learning machinery.
+
+**Fix (implemented).** `calibrate_board` now ends with a held-out phase:
+the final parent policy is evaluated on fresh episodes, and
+`eval_learnability` computes fitness from the **held-out median** rather
+than `final3`. Deployment-verifiable skill is now the selection target.
+
+**The three-Goodhart arc** — each fitness was exploited by evolution and
+each exploit forced a principled fix:
+
+| # | fitness | exploit evolved | fix |
+|---|---|---|---|
+| 1 | raw score | passive jackpot boards (random scores 103k) | learnability fitness |
+| 2 | percentile-of-random | tight-variance boards (learned 1085 vs random 1083 = "95th pct") | magnitude gate |
+| 3 | selection-biased learned estimate | boards where ES selection catches lucky trajectories without robust skill | held-out evaluation |
+
+This arms race between the optimiser and its measuring instrument is
+arguably the most interesting result of the project so far: even a
+7-board-per-generation evolutionary loop reliably finds and exploits
+every gap between "what we measure" and "what we mean". The next
+experiment — evolution against the held-out fitness — tests whether
+deployment-verified learnability is finally un-gameable at this scale.
+
+(Deployment note also folded into the tooling: greedy argmax deployment
+of a softmax-trained policy can collapse to a degenerate action loop —
+policies must be deployed with the same stochasticity they were trained
+under. `harness/replay.lua` now supports `PCS_TEMP=1`; `train_policy.py`
+returns the robust final parent rather than the noisy-max candidate.)

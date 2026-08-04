@@ -78,10 +78,14 @@ def eval_learnability(pb_path: str, seed: int) -> dict:
     r = calibrate_board(pb_path, gens=12, episodes=3, n_envs=4,
                         baseline_eps=15, max_episode_steps=120, seed=seed)
     rnd = np.array(r["random_scores"], float)
+    # fitness is computed from the HELD-OUT median (fresh episodes of the
+    # final policy), not final3: final3 is selection-biased and the outer
+    # loop learned to exploit that (see docs/EVOLUTION.md addendum)
+    learned = r.get("holdout_median", r["final3"])
     final3 = r["final3"]
     rnd_med = float(np.median(rnd)) if len(rnd) else 0.0
-    pct = float(100.0 * np.mean(rnd < final3)) if len(rnd) else 0.0
-    gain = final3 - rnd_med
+    pct = float(100.0 * np.mean(rnd < learned)) if len(rnd) else 0.0
+    gain = learned - rnd_med
     # ramp reaches 1.0 once the learned policy beats the random median by
     # max(150 pts, the median itself) -- absolute floor stops tiny-score
     # boards from qualifying on a tiny relative gain.
@@ -90,6 +94,7 @@ def eval_learnability(pb_path: str, seed: int) -> dict:
     fitness = pct * ramp * playable
     return {"fitness": float(fitness), "pct": pct, "ramp": round(ramp, 3),
             "gain": float(gain), "final3": final3,
+            "holdout_median": r.get("holdout_median", 0.0),
             "random_mean": r["random_mean"], "random_med": rnd_med,
             "curve_raw": r["curve_raw"]}
 

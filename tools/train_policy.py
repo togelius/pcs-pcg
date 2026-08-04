@@ -58,7 +58,9 @@ def train(pb_path: str, *, gens: int, episodes: int, children: int = 6,
             if f > best_fit:
                 best_fit, best_w = f, cands[int(np.argmax(fits))]
             curve.append(float(np.mean([r[0] for r in by[int(np.argmax(fits))]])))
-        return best_w, best_fit, curve
+        # the final PARENT is the robust deployment choice: it survived
+        # repeated margin-gated selection, unlike the noisy-max best_w
+        return parent, best_fit, curve
     finally:
         ev.close()
 

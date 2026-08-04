@@ -13,7 +13,9 @@
 --
 -- Features phi(x,y,dx,dy) = [1, x/160, y/192, dx/16, dy/16,
 --                            (x/160)(dx/16), (y/192)(dy/16)]
--- Action = argmax_a (W[a] . phi)  (greedy, for clean demonstration).
+-- Action: argmax (greedy) by default; set PCS_TEMP=1 for softmax
+-- sampling (matches how policies are evaluated during training --
+-- greedy deployment of a softmax-trained policy can collapse).
 
 local mach = manager.machine
 local mem  = mach.devices[":maincpu"].spaces["program"]
@@ -27,6 +29,7 @@ local STATE   = assert(os.getenv("PCS_STATE"))
 local SKIP    = tonumber(os.getenv("PCS_SKIP")) or 10
 local PLUNGER = tonumber(os.getenv("PCS_PLUNGER")) or 220
 local NBALLS  = tonumber(os.getenv("PCS_BALLS")) or 3
+local TEMP    = tonumber(os.getenv("PCS_TEMP")) or 0
 local SCORE1  = 0x8952
 
 -- load policy
@@ -57,11 +60,26 @@ local function policy_action(x, y, dx, dy)
   if not W then return math.random(0, 3) end
   local phi = {1.0, x / 160.0, y / 192.0, dx / 16.0, dy / 16.0,
                (x / 160.0) * (dx / 16.0), (y / 192.0) * (dy / 16.0)}
+  local z = {}
+  local zmax = -1e9
+  for a = 0, 3 do
+    z[a] = 0
+    for k = 1, 7 do z[a] = z[a] + W[a][k] * phi[k] end
+    if z[a] > zmax then zmax = z[a] end
+  end
+  if TEMP > 0 then
+    local p, tot = {}, 0
+    for a = 0, 3 do p[a] = math.exp((z[a] - zmax) / TEMP); tot = tot + p[a] end
+    local r = math.random() * tot
+    for a = 0, 3 do
+      r = r - p[a]
+      if r <= 0 then return a end
+    end
+    return 3
+  end
   local best, ba = -1e9, 0
   for a = 0, 3 do
-    local z = 0
-    for k = 1, 7 do z = z + W[a][k] * phi[k] end
-    if z > best then best = z; ba = a end
+    if z[a] > best then best = z[a]; ba = a end
   end
   return ba
 end

@@ -185,6 +185,14 @@ def calibrate_board(pb_path: str, *, gens: int, children: int = 4,
             curve_fit.append(fits[chosen])
             curve_raw.append(float(np.mean([r[0] for r in by_cand[chosen]])))
 
+        # HELD-OUT evaluation: the final parent policy on fresh episodes.
+        # curve_raw/final3 are selection-biased (the chosen candidate is
+        # scored on the same episodes used to choose it -- a max over
+        # noisy means); holdout is the unbiased deployment estimate.
+        hold_jobs = [(parent, int(rng.integers(140, 256)), int(rng.integers(2**31)))
+                     for _ in range(max(10, baseline_eps // 2))]
+        holdout_scores = [r[0] for r in ev.scores(hold_jobs)]
+
         rnd_mean = float(np.mean(base_scores))
         rnd_std = float(np.std(base_scores))
         final3 = float(np.mean(curve_raw[-3:])) if curve_raw else 0.0
@@ -195,6 +203,8 @@ def calibrate_board(pb_path: str, *, gens: int, children: int = 4,
             "random_mean": rnd_mean, "random_std": rnd_std,
             "random_scores": base_scores,
             "curve_raw": curve_raw, "curve_fit": curve_fit,
+            "holdout_scores": holdout_scores,
+            "holdout_median": float(np.median(holdout_scores)),
             "final3": final3, "lp_z": lp_z, "auc_above_random": auc,
             "wall_s": round(time.time() - t0, 1),
         }
