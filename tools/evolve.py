@@ -6,9 +6,10 @@ pluggable fitness:
   cheap         ~20 random episodes: launchability, log-score, coverage,
                 survival. Fast (~30-60 s/board); good for smoke tests
                 and seeding.
-  learnability  the calibrated estimator (tools/learn_es.py): percentile
-                of ES-learned performance within the random-episode
-                distribution, plus small tiebreakers. ~3-4 min/board.
+  learnability  multi-seed held-out estimator: median over n_seeds
+                independent inner-learning runs of (percentile of the
+                final policy's HELD-OUT median within random play,
+                magnitude-gated). ~10-20 min/board; slow but honest.
 
 Each evaluated board is written to the run directory together with a
 JSONL log; the per-board eval disk/save state are cached by content
@@ -60,43 +61,43 @@ def eval_cheap(pb_path: str, seed: int, episodes: int = 20,
             "frames_mean": float(np.mean(frames))}
 
 
-def eval_learnability(pb_path: str, seed: int) -> dict:
-    """Magnitude-gated percentile-of-random learnability.
+def eval_learnability(pb_path: str, seed: int, n_seeds: int = 4) -> dict:
+    """Multi-seed, held-out, magnitude-gated learnability.
 
-    Fitness = percentile(learned within random) x magnitude_ramp, where
-    the ramp scales 0->1 with how much the learned policy beats the
-    random MEDIAN. The percentile alone is fooled by tight-variance
-    trivial boards (e.g. learned 1084.6 vs random 1083.0 -> pct 95 with
-    no real learning, because every random episode scores ~1083); the
-    ramp demands a real performance gap, so:
-      - genuinely learnable (random low, learned high) -> high fitness
-      - trivial (learned ~ random, any variance) -> ~0
-      - random-beats-learned -> low percentile -> ~0
-      - dead/unplayable -> 0
-    max_episode_steps capped at 120 to bound long-survival board cost.
+    Runs the inner learning loop n_seeds times independently; each seed's
+    fitness = percentile(holdout_median within that seed's random
+    distribution) x magnitude ramp; the board's fitness is the MEDIAN
+    across seeds. Using the held-out median (final policy on fresh
+    episodes) removes the selection bias that a previous run exploited;
+    the multi-seed median removes single-run learner luck in both
+    directions. Dead boards (no scoring under any play) abort after the
+    first seed -- deadness is deterministic.
     """
-    r = calibrate_board(pb_path, gens=12, episodes=3, n_envs=4,
-                        baseline_eps=15, max_episode_steps=120, seed=seed)
-    rnd = np.array(r["random_scores"], float)
-    # fitness is computed from the HELD-OUT median (fresh episodes of the
-    # final policy), not final3: final3 is selection-biased and the outer
-    # loop learned to exploit that (see docs/EVOLUTION.md addendum)
-    learned = r.get("holdout_median", r["final3"])
-    final3 = r["final3"]
-    rnd_med = float(np.median(rnd)) if len(rnd) else 0.0
-    pct = float(100.0 * np.mean(rnd < learned)) if len(rnd) else 0.0
-    gain = learned - rnd_med
-    # ramp reaches 1.0 once the learned policy beats the random median by
-    # max(150 pts, the median itself) -- absolute floor stops tiny-score
-    # boards from qualifying on a tiny relative gain.
-    ramp = float(np.clip(gain / max(150.0, rnd_med), 0.0, 1.0))
-    playable = 1.0 if (r["random_mean"] > 0 or final3 > 0) else 0.0
-    fitness = pct * ramp * playable
-    return {"fitness": float(fitness), "pct": pct, "ramp": round(ramp, 3),
-            "gain": float(gain), "final3": final3,
-            "holdout_median": r.get("holdout_median", 0.0),
-            "random_mean": r["random_mean"], "random_med": rnd_med,
-            "curve_raw": r["curve_raw"]}
+    per_seed = []
+    detail = []
+    for k in range(n_seeds):
+        r = calibrate_board(pb_path, gens=12, episodes=3, n_envs=4,
+                            baseline_eps=15, max_episode_steps=120,
+                            seed=seed * 1000 + k)
+        rnd = np.array(r["random_scores"], float)
+        learned = r.get("holdout_median", 0.0)
+        rnd_med = float(np.median(rnd)) if len(rnd) else 0.0
+        pct = float(100.0 * np.mean(rnd < learned)) if len(rnd) else 0.0
+        gain = learned - rnd_med
+        ramp = float(np.clip(gain / max(150.0, rnd_med), 0.0, 1.0))
+        playable = 1.0 if (r["random_mean"] > 0 or r["final3"] > 0
+                           or learned > 0) else 0.0
+        f = pct * ramp * playable
+        per_seed.append(f)
+        detail.append({"seed": k, "fit": round(f, 1),
+                       "holdout": learned, "rnd_med": rnd_med,
+                       "pct": round(pct, 1), "ramp": round(ramp, 2)})
+        if k == 0 and playable == 0.0:
+            break                      # dead board: no need for more seeds
+    fitness = float(np.median(per_seed))
+    return {"fitness": fitness, "per_seed": detail,
+            "seed_fits": [round(f, 1) for f in per_seed],
+            "n_seeds_run": len(per_seed)}
 
 
 EVALS = {"cheap": eval_cheap, "learnability": eval_learnability}
