@@ -1,0 +1,149 @@
+[
+  {
+    "rank": 0,
+    "fitness": 70.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 66.7,
+        "holdout": 631.0,
+        "rnd_med": 249.0,
+        "pct": 66.7,
+        "ramp": 1.0
+      },
+      {
+        "seed": 1,
+        "fit": 73.3,
+        "holdout": 988.0,
+        "rnd_med": 249.0,
+        "pct": 73.3,
+        "ramp": 1.0
+      },
+      {
+        "seed": 2,
+        "fit": 73.3,
+        "holdout": 251.0,
+        "rnd_med": 44.0,
+        "pct": 73.3,
+        "ramp": 1.0
+      },
+      {
+        "seed": 3,
+        "fit": 60.0,
+        "holdout": 641.0,
+        "rnd_med": 249.0,
+        "pct": 60.0,
+        "ramp": 1.0
+      }
+    ],
+    "seed_fits": [
+      66.7,
+      73.3,
+      73.3,
+      60.0
+    ],
+    "n_seeds_run": 4,
+    "tag": "g002_o0",
+    "parent": "g001_o0",
+    "records": 29,
+    "wall_s": 111.1
+  },
+  {
+    "rank": 1,
+    "fitness": 60.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 100.0,
+        "holdout": 4318.0,
+        "rnd_med": 75.0,
+        "pct": 100.0,
+        "ramp": 1.0
+      },
+      {
+        "seed": 1,
+        "fit": 0.0,
+        "holdout": 88.5,
+        "rnd_med": 95.0,
+        "pct": 46.7,
+        "ramp": 0.0
+      },
+      {
+        "seed": 2,
+        "fit": 93.3,
+        "holdout": 1045.5,
+        "rnd_med": 120.0,
+        "pct": 93.3,
+        "ramp": 1.0
+      },
+      {
+        "seed": 3,
+        "fit": 26.7,
+        "holdout": 180.0,
+        "rnd_med": 120.0,
+        "pct": 66.7,
+        "ramp": 0.4
+      }
+    ],
+    "seed_fits": [
+      100.0,
+      0.0,
+      93.3,
+      26.7
+    ],
+    "n_seeds_run": 4,
+    "tag": "g001_o0",
+    "parent": "g000_i3",
+    "records": 28,
+    "wall_s": 115.9
+  },
+  {
+    "rank": 2,
+    "fitness": 60.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 100.0,
+        "holdout": 4318.0,
+        "rnd_med": 75.0,
+        "pct": 100.0,
+        "ramp": 1.0
+      },
+      {
+        "seed": 1,
+        "fit": 0.0,
+        "holdout": 88.5,
+        "rnd_med": 95.0,
+        "pct": 46.7,
+        "ramp": 0.0
+      },
+      {
+        "seed": 2,
+        "fit": 93.3,
+        "holdout": 1045.5,
+        "rnd_med": 120.0,
+        "pct": 93.3,
+        "ramp": 1.0
+      },
+      {
+        "seed": 3,
+        "fit": 26.7,
+        "holdout": 180.0,
+        "rnd_med": 120.0,
+        "pct": 66.7,
+        "ramp": 0.4
+      }
+    ],
+    "seed_fits": [
+      100.0,
+      0.0,
+      93.3,
+      26.7
+    ],
+    "n_seeds_run": 4,
+    "tag": "g004_o1",
+    "parent": "g001_o0",
+    "records": 28,
+    "wall_s": 107.1
+  }
+]

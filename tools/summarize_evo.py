@@ -35,8 +35,15 @@ def load(rundir: str) -> list[dict]:
 
 def verdict(r: dict) -> str:
     fit = r.get("fitness", 0)
+    per = r.get("per_seed")
     if fit <= 0.5:
-        # distinguish gated-trivial from dead/random-better
+        if per:  # multi-seed record
+            if all(d.get("holdout", 0) == 0 and d.get("rnd_med", 0) == 0
+                   for d in per):
+                return "dead"
+            if any(d.get("ramp", 1) == 0 and d.get("pct", 0) >= 60 for d in per):
+                return "trivial (gated)"
+            return "unlearnable"
         if r.get("ramp", 1) == 0 and r.get("final3", 0) > 0 and r.get("pct", 0) >= 60:
             return "trivial (gated)"
         if r.get("final3", 0) == 0:
@@ -67,9 +74,14 @@ def main() -> None:
         fits = [r["fitness"] for r in by_gen[g]]
         b = max(by_gen[g], key=lambda r: r["fitness"])
         best_per_gen.append((g, b["fitness"]))
+        extra = ""
+        if b.get("per_seed"):
+            hs = [d.get("holdout", 0) for d in b["per_seed"]]
+            rs = [d.get("rnd_med", 0) for d in b["per_seed"]]
+            extra = (f", holdout_meds={[int(h) for h in hs]} "
+                     f"vs rnd_meds={[int(x) for x in rs]}")
         print(f"  gen {g}: n={len(fits)} best={b['fitness']:.1f} "
-              f"({b['tag']}, learned={b.get('final3',0):.0f} "
-              f"vs rnd_med={b.get('random_med',0):.0f})")
+              f"({b['tag']}{extra})")
 
     cj = os.path.join(args.rundir, "champions.json")
     if os.path.exists(cj):
