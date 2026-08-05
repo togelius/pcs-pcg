@@ -226,3 +226,71 @@ of a softmax-trained policy can collapse to a degenerate action loop —
 policies must be deployed with the same stochasticity they were trained
 under. `harness/replay.lua` now supports `PCS_TEMP=1`; `train_policy.py`
 returns the robust final parent rather than the noisy-max candidate.)
+
+---
+
+# The held-out evolution run and the ES-vs-PPO comparison
+
+## Held-out multi-seed evolution (the redemption run)
+
+Same (mu+lambda) loop, fitness = **median over 4 independent inner
+learning runs** of the held-out gated percentile (tools/evolve.py).
+Trajectory: initial random population mostly fails honest learnability
+(best 25.5, bimodal seeds), then **25.5 -> 60.0 -> 70.0** in two
+generations, holding to the end. In-run champion `g002_o0` had all four
+inner seeds positive (held-out medians 631/988/251/641 vs random
+249/249/44/249). 31 boards: 12 learnable, 3 trivial-gated, 15
+unlearnable, 1 dead. Log: `docs/champions/holdout_run_log.jsonl`.
+
+**Residual bias, measured:** re-evaluating the champion with *fresh*
+inner seeds gives 30.0 (seeds [0, 60, 0, 73]) rather than the in-run
+70.0 — the outer loop had partly adapted to the four specific inner
+seeds used for every evaluation during the run (fitness reproducibility
+came at the cost of seed-overfitting). Still clearly the most
+ES-learnable evolved artifact, but future runs should draw fresh inner
+seeds per evaluation and accept noisier fitness. The Goodhart ledger
+thus gains a fourth, milder entry: fixed evaluation seeds.
+
+## Learner x board matrix (all held-out, same protocol)
+
+![learner matrix](figures/learner_matrix.png)
+
+| board | ES (4-seed median) | PPO (2-seed mean) |
+|---|---|---|
+| NEW (empty) | 0 | 0 |
+| DEMO1 (trap) | 0 | 0 |
+| DEMO2 (Meta-Pin) | 0* | 6 |
+| DEMO3 | 7 | **72** |
+| **ES-evolved champion** | **30** | 0 |
+| earlier (biased-run) champion | 0 | **67** |
+
+*DEMO2 under ES is budget-sensitive: at the evolve-loop inner budget it
+learns ~1 seed in 4 (median 0); a single full-budget run showed a clean
+17x held-out gap. PPO's DEMO2 weakness (6) is consistent across seeds.
+
+**Findings:**
+
+1. **Double dissociation on the evolved champions, replicated across
+   seeds.** The ES-evolution champion is learnable by ES (30; two seeds
+   at 60-73) and opaque to PPO (0, both seeds). The earlier champion —
+   which failed ES held-out verification and was provisionally written
+   off as estimator-noise gaming — is *genuinely learnable by PPO*
+   (73/60 across seeds, held-out). Each evolutionary run produced boards
+   matched to the inductive biases of the learner inside its fitness.
+   That partially rehabilitates the earlier champion: not a noise
+   artifact, but a board whose skill lies outside a 28-parameter linear
+   policy's reliable reach and inside an MLP's.
+2. **Near-orthogonal learner profiles on the human boards too**: PPO
+   dominates DEMO3 (72 vs 7); ES (at full budget) dominates DEMO2.
+   "Learnable" is not a property of a board alone but of a
+   board-learner pair — the learner-relativity question from the 2008
+   paper, now with quantitative, deployment-verified instances,
+   including *evolved* artifacts that sit on opposite sides of the
+   dissociation.
+3. Degenerate boards are 0 for both learners — the gates are
+   learner-independent, as they should be.
+
+The natural headline experiment this sets up: evolve with fitness =
+min(ES, PPO) for boards learnable by *both* (robust game quality), or
+fitness = |ES - PPO| for maximal learner differentiation (the 2008
+paper's closing proposal, now directly implementable).

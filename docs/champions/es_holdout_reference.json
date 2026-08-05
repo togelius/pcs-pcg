@@ -1,0 +1,218 @@
+[
+  {
+    "fitness": 0.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 0.0,
+        "holdout": 0.0,
+        "rnd_med": 0.0,
+        "pct": 0.0,
+        "ramp": 0.0
+      }
+    ],
+    "seed_fits": [
+      0.0
+    ],
+    "n_seeds_run": 1,
+    "board": "NEW"
+  },
+  {
+    "fitness": 0.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 0.0,
+        "holdout": 0.0,
+        "rnd_med": 0.0,
+        "pct": 0.0,
+        "ramp": 0.0
+      }
+    ],
+    "seed_fits": [
+      0.0
+    ],
+    "n_seeds_run": 1,
+    "board": "DEMO1"
+  },
+  {
+    "fitness": 0.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 0.0,
+        "holdout": 3.0,
+        "rnd_med": 49.0,
+        "pct": 33.3,
+        "ramp": 0.0
+      },
+      {
+        "seed": 1,
+        "fit": 0.0,
+        "holdout": 3.0,
+        "rnd_med": 3.0,
+        "pct": 26.7,
+        "ramp": 0.0
+      },
+      {
+        "seed": 2,
+        "fit": 0.0,
+        "holdout": 19.0,
+        "rnd_med": 29.0,
+        "pct": 46.7,
+        "ramp": 0.0
+      },
+      {
+        "seed": 3,
+        "fit": 60.0,
+        "holdout": 409.0,
+        "rnd_med": 3.0,
+        "pct": 60.0,
+        "ramp": 1.0
+      }
+    ],
+    "seed_fits": [
+      0.0,
+      0.0,
+      0.0,
+      60.0
+    ],
+    "n_seeds_run": 4,
+    "board": "DEMO2"
+  },
+  {
+    "fitness": 6.5555555555555545,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 0.0,
+        "holdout": 28.0,
+        "rnd_med": 44.0,
+        "pct": 46.7,
+        "ramp": 0.0
+      },
+      {
+        "seed": 1,
+        "fit": 13.1,
+        "holdout": 52.5,
+        "rnd_med": 23.0,
+        "pct": 66.7,
+        "ramp": 0.2
+      },
+      {
+        "seed": 2,
+        "fit": 0.0,
+        "holdout": 21.0,
+        "rnd_med": 21.0,
+        "pct": 40.0,
+        "ramp": 0.0
+      },
+      {
+        "seed": 3,
+        "fit": 18.3,
+        "holdout": 97.5,
+        "rnd_med": 46.0,
+        "pct": 53.3,
+        "ramp": 0.34
+      }
+    ],
+    "seed_fits": [
+      0.0,
+      13.1,
+      0.0,
+      18.3
+    ],
+    "n_seeds_run": 4,
+    "board": "DEMO3"
+  },
+  {
+    "fitness": 30.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 0.0,
+        "holdout": 23.0,
+        "rnd_med": 977.0,
+        "pct": 0.0,
+        "ramp": 0.0
+      },
+      {
+        "seed": 1,
+        "fit": 60.0,
+        "holdout": 249.0,
+        "rnd_med": 61.0,
+        "pct": 60.0,
+        "ramp": 1.0
+      },
+      {
+        "seed": 2,
+        "fit": 0.0,
+        "holdout": 249.0,
+        "rnd_med": 1013.0,
+        "pct": 26.7,
+        "ramp": 0.0
+      },
+      {
+        "seed": 3,
+        "fit": 73.3,
+        "holdout": 807.5,
+        "rnd_med": 129.0,
+        "pct": 73.3,
+        "ramp": 1.0
+      }
+    ],
+    "seed_fits": [
+      0.0,
+      60.0,
+      0.0,
+      73.3
+    ],
+    "n_seeds_run": 4,
+    "board": "holdout_champ"
+  },
+  {
+    "fitness": 0.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "fit": 0.0,
+        "holdout": 49.5,
+        "rnd_med": 82.0,
+        "pct": 33.3,
+        "ramp": 0.0
+      },
+      {
+        "seed": 1,
+        "fit": 0.0,
+        "holdout": 49.5,
+        "rnd_med": 821.0,
+        "pct": 46.7,
+        "ramp": 0.0
+      },
+      {
+        "seed": 2,
+        "fit": 60.0,
+        "holdout": 577.5,
+        "rnd_med": 49.0,
+        "pct": 60.0,
+        "ramp": 1.0
+      },
+      {
+        "seed": 3,
+        "fit": 0.0,
+        "holdout": 78.5,
+        "rnd_med": 82.0,
+        "pct": 46.7,
+        "ramp": 0.0
+      }
+    ],
+    "seed_fits": [
+      0.0,
+      0.0,
+      60.0,
+      0.0
+    ],
+    "n_seeds_run": 4,
+    "board": "old_champ"
+  }
+]
