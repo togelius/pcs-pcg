@@ -294,3 +294,73 @@ The natural headline experiment this sets up: evolve with fitness =
 min(ES, PPO) for boards learnable by *both* (robust game quality), or
 fitness = |ES - PPO| for maximal learner differentiation (the 2008
 paper's closing proposal, now directly implementable).
+
+## Queued ideas (from discussion, 2026-08-06)
+
+Two directions raised after the ES-vs-PPO comparison, deliberately
+queued behind the dual-learner run:
+
+1. **More learners / more policy representations.** With the held-out
+   gated-percentile protocol now learner-agnostic (the same formula
+   wraps ES and PPO), adding learners is cheap: an MLP trained by ES
+   (separates representation from optimizer — our current 2x2 confounds
+   them: linear+ES vs MLP+PPO), tile-coding/tabular Q-learning, CMA-ES
+   on the linear policy, different MLP widths/depths, or an *evolvable*
+   policy representation (e.g. neuroevolution with topology growth).
+   The learner-matrix experiment generalizes to an N-learner profile
+   per board; boards become points in "learnability space" and
+   evolution can target any region of it. The linear-vs-MLP confound is
+   the first thing to resolve: run ES-MLP on the four matrix boards.
+
+2. **Discrete-improvements fitness (strategy-ladder depth).** Lantz et
+   al., "Depth in Strategic Games" (AAAI-17 workshops): depth d = the
+   number of discrete step-unit improvements in best-strategy strength
+   as computational resources increase, from random-play CR to
+   perfect-play CR. Our inner loop is almost exactly a partial,
+   low-CR-regime instantiation: training compute is the resource axis,
+   and the ES already logs a per-generation curve. What is missing for
+   an honest step count is *held-out checkpoints*: curve_raw is
+   selection-biased (each point is a max over noisy candidate means),
+   so steps counted on it would partly count selection noise. Plan:
+   checkpoint the parent policy every k inner generations, evaluate
+   each checkpoint on fresh episodes at the end, count steps of >= 1
+   noise-calibrated unit (e.g. exceeding the previous plateau by more
+   than a bootstrap CI width), fitness = number of steps. This directly
+   selects for *staircase-shaped* learning curves — boards with
+   multiple skill plateaus — rather than any-gain boards, and is
+   robust to the magnitude-of-gain Goodharting that forced the ramp
+   gate: many small honest steps beat one lucky jackpot. Risks to
+   pre-register: step-counting is noise-sensitive (needs the CI-based
+   step unit, not a fixed threshold); and a learner with a fixed budget
+   caps the observable step count, so the measurable range of d is
+   narrow (~0-4 steps at our budgets) until budgets grow.
+
+## Experiment: dual-learner evolution, fitness = min(ES, PPO)
+
+The single-learner runs each produced boards matched to their learner's
+inductive biases (the double dissociation above). The obvious fix is to
+require *both* learners to learn the board: fitness = min(ES fitness,
+PPO fitness), both measured by the identical held-out gated-percentile
+protocol. A board can no longer win by exploiting one learner's quirks;
+it has to contain skill that is discoverable by two very different
+optimizers (a 28-parameter linear softmax under a (1+4)-ES, and a
+[32,32] MLP under PPO). min() is also the conservative aggregator: it
+optimizes the worst case, which is the right notion of "robustly
+learnable".
+
+Protocol changes vs the previous run:
+
+- **Fresh inner seeds per evaluation** (fix for Goodhart #4): every
+  evaluation draws its inner seed base from the outer rng, so no board
+  can adapt to a fixed serve set. Fitness is noisier; the multi-seed
+  median and the min() both push in the conservative direction.
+- **ES-first short-circuit**: ES (2 seeds, ~8 min) runs first; if the
+  ES median is 0, min() is 0 regardless of PPO, so PPO (2 seeds x 30k
+  steps, ~25-30 min) only runs on boards that pass the ES gate. This
+  makes the run affordable: unlearnable offspring cost ~8 min, and the
+  full dual price is paid only for candidates.
+- Also implemented: `--fitness dual_diff` = |ES - PPO| (the 2008
+  paper's learner-differentiation proposal) for a follow-up run.
+
+Run: `python3 tools/evolve.py --out work/evo_dual --fitness dual
+--gens 10 --mu 3 --lam 6 --seed 0` (results section to follow).
